@@ -1,0 +1,25 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Places
+GET /places.json                controllers.PlaceController.listAllPlaces()
+GET /places_in_area.json        controllers.PlaceController.listPlacesInArea(startLatitude: Double, startLongitude: Double, stopLatitude: Double, stopLongitude: Double)
+
+# Stories
+GET /stories.json               controllers.StoryController.listStoriesForPlace(placeId: String)
+GET /stories_in_radius.json     controllers.StoryController.listStoriesForPlaceInRadius(placeId: String, radius: Double)
+
+# Collection
+GET /listCollections.json		controllers.CollectionController.listCollections()
+GET /getCollection.json         controllers.CollectionController.getCollection(tag: String)
+GET /places_in_collection.json	controllers.CollectionController.listPlacesWithCollections(tag: String)
+
+# Images
+GET /images.json                controllers.ImageController.listImagesForTag(tag: String)
+
+# Sounds
+GET /sounds.json                controllers.SoundController.listSoundsForTag(tag: String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET /assets/*file               controllers.Assets.at(path="/public", file)
