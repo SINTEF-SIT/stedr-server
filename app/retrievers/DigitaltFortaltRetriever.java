@@ -36,7 +36,6 @@
 
 package retrievers;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -51,6 +50,7 @@ import org.jsoup.select.Elements;
 
 import services.StedrConstants;
 import services.StoryService;
+import utils.HttpUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -89,7 +89,7 @@ public class DigitaltFortaltRetriever implements StoryService {
 		
 		storyIDs=getIDsFromDIMU(place);
 		
-		if(storyIDs.size()>=1){
+		if(storyIDs.size()>=1) {
 			storyItems=getStoriesFromDIMU(storyIDs);
 		}
 		return Collections2.transform(storyItems, jsonElementToStoryMapping);
@@ -121,45 +121,40 @@ public class DigitaltFortaltRetriever implements StoryService {
 		Document response;
 		ArrayList<String> ids = new ArrayList<String>();
 		StringBuffer requestURL = new StringBuffer();		
-		requestURL.append("http://api.digitaltmuseum.no/solr/select?q=*:*&");
+		requestURL.append("http://api.dimu.org/api/solr/select?q=*:*&");
 		requestURL.append("fq=identifier.owner:H-DF&");
 		requestURL.append("fq={!bbox%20pt="+place.latitude+","+place.longitude+"%20sfield=artifact.coordinate%20d=0.1}&");
 		requestURL.append("api.key=");
 		requestURL.append(StedrConstants.DIMU_API_KEY);
-		try {
-			response = Jsoup.connect(requestURL.toString()).get();
-			Elements storyIDs = response.getElementsByAttributeValueContaining("name", "identifier.id");
-			for (Element element : storyIDs) {
-				ids.add(element.text());
-			}
-			return ids;
-		} 
-		catch (IOException e) {
-			e.printStackTrace();
+		
+		String page = HttpUtils.getDocument(requestURL.toString());
+		response = Jsoup.parse(page);
+		Elements storyIDs = response.getElementsByAttributeValueContaining("name", "identifier.id");
+		for (Element element : storyIDs) {
+			ids.add(element.text());
 		}
-		return null;
+		
+		return ids; 
 	}
+	
 	private ArrayList<String> getIDsFromDIMU(String searchTag){
 		Document response;
 		ArrayList<String> ids = new ArrayList<String>();
 		StringBuffer requestURL = new StringBuffer();		
-		requestURL.append("http://api.digitaltmuseum.no/solr/select?q=");
+		requestURL.append("http://api.dimu.org/api/solr/select?q=");
 		requestURL.append(searchTag+"&");
 		requestURL.append("fq=identifier.owner:H-DF&");
 		requestURL.append("api.key=");
 		requestURL.append(StedrConstants.DIMU_API_KEY);
-		try {
-			response = Jsoup.connect(requestURL.toString()).get();
-			Elements storyIDs = response.getElementsByAttributeValueContaining("name", "identifier.id");
-			for (Element element : storyIDs) {
-				ids.add(element.text());
-			}
-			return ids;
-		} 
-		catch (IOException e) {
-			e.printStackTrace();
+		
+		String page = HttpUtils.getDocument(requestURL.toString());
+		response = Jsoup.parse(page);
+		Elements storyIDs = response.getElementsByAttributeValueContaining("name", "identifier.id");
+		for (Element element : storyIDs) {
+			ids.add(element.text());
 		}
-		return null;
+		
+		return ids;
 	}
 	
 	private static Elements getStoriesFromDIMU(ArrayList<String> storyIDs){
@@ -169,31 +164,33 @@ public class DigitaltFortaltRetriever implements StoryService {
 		
 		try{
 			if(storyIDs.size()>=1){
-				requestURL.append("http://api.digitaltmuseum.no/artifact?owner=H-DF&identifier=");
+				requestURL.append("http://api.dimu.org/api/artifact?owner=H-DF&identifier=");
 				requestURL.append(storyIDs.get(0));
 				requestURL.append("&mapping=ABM&api.key=demo");
-				response = Jsoup.connect(requestURL.toString()).get();
+				
+				String page = HttpUtils.getDocument(requestURL.toString());
+				response = Jsoup.parse(page);
+				
 				stories = response.getElementsByTag("abm:record");
 				Collections2.transform(stories, jsonElementToStoryMapping);
 				if(storyIDs.size()>1){
 					for(int i = 1; i<storyIDs.size();i++){
 						requestURL.setLength(0);
-						requestURL.append("http://api.digitaltmuseum.no/artifact?owner=H-DF&identifier=");
+						requestURL.append("http://api.dimu.org/api/artifact?owner=H-DF&identifier=");
 						requestURL.append(storyIDs.get(i));
 						requestURL.append("&mapping=ABM&api.key=demo");
-						response = Jsoup.connect(requestURL.toString()).get();
+						
+						String internalPage = HttpUtils.getDocument(requestURL.toString());
+						response = Jsoup.parse(internalPage);
 						stories.addAll(response.getElementsByTag("abm:record"));
 						//	Not sure if necessary, meant to prevent flooding of the external server  
 						Thread.sleep(250);
 					}
 				}
 			}
-		}
-		catch (IOException e) {
-			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}		
+		}
 		return stories;
 	}	
 	
